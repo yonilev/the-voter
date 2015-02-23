@@ -26,10 +26,6 @@ def parse_post_json(candidate):
                     posts.append(p)
                     dates.append(datetime.strptime(post['created_time'],'%Y-%m-%dT%H:%M:%S+0000'))
                     candidates.append(candidate)
-#                     x = datetime.strptime(post['created_time'],'%Y-%m-%dT%H:%M:%S+0000')
-#                     epoch = datetime.utcfromtimestamp(0)
-#                     delta = x - epoch
-#                     delta.total_seconds()
             except:
                 continue
     return posts,dates,candidates
