@@ -2,13 +2,10 @@ import json
 from datetime import datetime
 import facebook
 import requests
-import pandas as pd
-import re
 import os
+import pandas as pd
 
 #do something to clean posts. return None if the post is not "good"
-def cleanPost(post):
-    return post
 
 def parse_post_json(candidate):
     posts = []
@@ -20,25 +17,52 @@ def parse_post_json(candidate):
         data = json.loads(open(filePath,'r').read().decode())
         for post in data[data.keys()[1]]:
             try:
-                p = cleanPost(post['message'])
-                if p!=None:
-                    print len(post['likes']['data'])
-                    posts.append(p)
-                    dates.append(datetime.strptime(post['created_time'],'%Y-%m-%dT%H:%M:%S+0000'))
-                    candidates.append(candidate)
+                p = post['message']
+                posts.append(p)
+                dates.append(datetime.strptime(post['created_time'],'%Y-%m-%dT%H:%M:%S+0000'))
+                candidates.append(candidate)
             except:
                 continue
     return posts,dates,candidates
 
+def clean_df(df,minNumberOfWords=6,minNumberOfChars=30):
+    #remove duplicate posts from the same candidate
+    df = df.drop_duplicates(subset=['post','candidate'])
+    
+    #remove posts with less words than minNumberOfWords or less characters than minNumberOfChars
+    df = df[df.post.apply(lambda x: x.count(' ')>minNumberOfWords and len(x)>minNumberOfChars)]
+    
+    #start posts from the same date
+    minDate = max([df[df.candidate==name].date.min() for name in df.candidate.unique()])
+    df = df[df.date>=minDate]
+    return df
+
+def create_posts_df():
+    candidates = os.listdir("data")
+    post = []
+    date = []
+    candidate = []
+    
+    for c in candidates:
+        data = parse_post_json(c)
+        post += data[0]
+        date += data[1]
+        candidate += data[2]
+    
+    df = pd.DataFrame({'post':post,'date':date,'candidate':candidate})
+    return clean_df(df)
+
+    
 
 
-def get_all_posts(user,access_token):
-    folder = 'data/'+user + '/'
+
+def get_all_posts(fbUser,folderName,access_token):
+    folder = 'data/'+folderName + '/'
     if not os.path.isdir(folder):
         os.mkdir(folder)
         
     graph = facebook.GraphAPI(access_token)
-    profile = graph.get_object(user)
+    profile = graph.get_object(fbUser)
     posts = graph.get_connections(profile['id'], 'posts')
     
     # Wrap this block in a while loop so we can keep paginating requests until
@@ -61,7 +85,3 @@ def get_all_posts(user,access_token):
         
 
 
-
-posts,dates,candidates = parse_post_json('yairlapid')
-df = pd.DataFrame({'post':posts,'date':dates,'candidate':candidates})
-print df.describe()
