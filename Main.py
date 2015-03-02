@@ -1,9 +1,12 @@
+# coding=utf8
+
 import json
 from datetime import datetime
 import facebook
 import requests
 import os
 import pandas as pd
+import re
 
 #do something to clean posts. return None if the post is not "good"
 
@@ -25,12 +28,13 @@ def parse_post_json(folder,candidate):
                 continue
     return posts,dates,candidates
 
-def clean_df(df,minNumberOfWords=20,minNumberOfChars=100):
+
+def clean_df(df,minNumberOfWords=20,minNumberOfChars=100):   
     #remove duplicate posts from the same candidate
     df = df.drop_duplicates(subset=['post','candidate'])
     
     #remove posts with less words than minNumberOfWords or less characters than minNumberOfChars
-    df = df[df.post.apply(lambda x: x.count(' ')>minNumberOfWords and len(x)>minNumberOfChars)]
+    df = df[df.post.apply(lambda x: x.count(' ')>minNumberOfWords and len(re.sub('[a-zA-Z,/:;.)(]','',x))>minNumberOfChars)]
     return df
 
 def create_posts_df(folder):
@@ -79,4 +83,3 @@ def get_all_posts(fbUser,folderName,access_token,maxIter=1000):
     
         
 
-#get_all_posts('stavshaffir','data/others/Stav Shaffir/','CAACEdEose0cBAKgIJPqkCOwwVgIIggZA0GQRg0NaoFY5i4QMj3ZBSQXDZC5ow8wOIDsLASivfUGqGjkPN4hc1ccQFMkvv8JPTJma3By8ZCK0Gx3OW48pOkFq0JBZCtipa81GNWVEcGz8KMfZC1Rg9OXgno7YJhK4ZBZBoVXCxddzR7ARuj2YQPqHErZBPEGUp5yPn9C6dc8ZAroTwBoEw49YaoZAlZCPXk8uSoj8hP42FdJVcwZDZD',maxIter=10)
