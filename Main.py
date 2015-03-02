@@ -7,13 +7,13 @@ import pandas as pd
 
 #do something to clean posts. return None if the post is not "good"
 
-def parse_post_json(candidate):
+def parse_post_json(folder,candidate):
     posts = []
     dates = []
     candidates = []
     
-    for f in os.listdir("data/"+candidate):
-        filePath = 'data/'+candidate+'/'+f
+    for f in os.listdir(folder+candidate):
+        filePath = folder+candidate+'/'+f
         data = json.loads(open(filePath,'r').read().decode())
         for post in data[data.keys()[1]]:
             try:
@@ -25,26 +25,22 @@ def parse_post_json(candidate):
                 continue
     return posts,dates,candidates
 
-def clean_df(df,minNumberOfWords=6,minNumberOfChars=30):
+def clean_df(df,minNumberOfWords=20,minNumberOfChars=100):
     #remove duplicate posts from the same candidate
     df = df.drop_duplicates(subset=['post','candidate'])
     
     #remove posts with less words than minNumberOfWords or less characters than minNumberOfChars
     df = df[df.post.apply(lambda x: x.count(' ')>minNumberOfWords and len(x)>minNumberOfChars)]
-    
-    #start posts from the same date
-    minDate = max([df[df.candidate==name].date.min() for name in df.candidate.unique()])
-    df = df[df.date>=minDate]
     return df
 
-def create_posts_df():
-    candidates = os.listdir("data")
+def create_posts_df(folder):
+    candidates = os.listdir(folder)
     post = []
     date = []
     candidate = []
     
     for c in candidates:
-        data = parse_post_json(c)
+        data = parse_post_json(folder,c)
         post += data[0]
         date += data[1]
         candidate += data[2]
@@ -52,14 +48,10 @@ def create_posts_df():
     df = pd.DataFrame({'post':post,'date':date,'candidate':candidate})
     return clean_df(df)
 
-    
 
-
-
-def get_all_posts(fbUser,folderName,access_token):
-    folder = 'data/'+folderName + '/'
-    if not os.path.isdir(folder):
-        os.mkdir(folder)
+def get_all_posts(fbUser,folderName,access_token,maxIter=1000):
+    if not os.path.isdir(folderName):
+        os.mkdir(folderName)
         
     graph = facebook.GraphAPI(access_token)
     profile = graph.get_object(fbUser)
@@ -67,11 +59,11 @@ def get_all_posts(fbUser,folderName,access_token):
     
     # Wrap this block in a while loop so we can keep paginating requests until
     # finished.
-    i = 1
+    i = 0
     while True:
         try:
             print i
-            with open(folder+str(i)+'.json', 'w') as outfile:
+            with open(folderName+str(i)+'.json', 'w') as outfile:
                 json.dump(posts, outfile)
             
             # Attempt to make a request to the next page of data, if it exists.
@@ -79,9 +71,12 @@ def get_all_posts(fbUser,folderName,access_token):
         except KeyError:
             # When there are no more pages (['paging']['next']), break from the
             # loop and end the script.
+            os.remove(folderName+str(i)+'.json')
             break
         i+=1
-    os.remove(folder+str(i)+'.json')
+        if i==maxIter:
+            break
+    
         
 
-
+#get_all_posts('stavshaffir','data/others/Stav Shaffir/','CAACEdEose0cBAKgIJPqkCOwwVgIIggZA0GQRg0NaoFY5i4QMj3ZBSQXDZC5ow8wOIDsLASivfUGqGjkPN4hc1ccQFMkvv8JPTJma3By8ZCK0Gx3OW48pOkFq0JBZCtipa81GNWVEcGz8KMfZC1Rg9OXgno7YJhK4ZBZBoVXCxddzR7ARuj2YQPqHErZBPEGUp5yPn9C6dc8ZAroTwBoEw49YaoZAlZCPXk8uSoj8hP42FdJVcwZDZD',maxIter=10)
