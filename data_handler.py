@@ -29,12 +29,18 @@ def parse_post_json(folder,candidate):
     return posts,dates,candidates
 
 
-def clean_df(df,minNumberOfWords=20,minNumberOfChars=100):   
+def is_good_post(post,minNumberOfWords,minNumberOfChars):
+    post = re.sub('[a-zA-Z,/:;.)(]','',post)
+    post = re.sub(' +',' ',post)
+    return post.count(' ')>minNumberOfWords and post>minNumberOfChars
+
+
+def clean_df(df,minNumberOfWords=20,minNumberOfChars=200):   
     #remove duplicate posts from the same candidate
     df = df.drop_duplicates(subset=['post','candidate'])
     
     #remove posts with less words than minNumberOfWords or less characters than minNumberOfChars
-    df = df[df.post.apply(lambda x: x.count(' ')>minNumberOfWords and len(re.sub('[a-zA-Z,/:;.)(]','',x))>minNumberOfChars)]
+    df = df[df.post.apply(lambda x: is_good_post(x, minNumberOfWords, minNumberOfChars))]
     return df
 
 def create_posts_df(folder):
