@@ -29,18 +29,19 @@ def parse_post_json(folder,candidate):
     return posts,dates,candidates
 
 
-def is_good_post(post,minNumberOfWords,minNumberOfChars):
-    post = re.sub('[a-zA-Z,/:;.)(]','',post)
-    post = re.sub(' +',' ',post)
-    return post.count(' ')>minNumberOfWords and post>minNumberOfChars
+def is_good_post(post,minNumberOfChars):
+    post = post.encode('utf8')
+    post = re.sub('[^ץתצמנהבסזשדגכעיחלךףפםןוטארק]','',post)
+    post = re.sub('(\s|\\n)*','',post)
+    return len(post)>minNumberOfChars
 
 
-def clean_df(df,minNumberOfWords=20,minNumberOfChars=200):   
+def clean_df(df,minNumberOfChars=200):   
     #remove duplicate posts from the same candidate
     df = df.drop_duplicates(subset=['post','candidate'])
     
     #remove posts with less words than minNumberOfWords or less characters than minNumberOfChars
-    df = df[df.post.apply(lambda x: is_good_post(x, minNumberOfWords, minNumberOfChars))]
+    df = df[df.post.apply(lambda x: is_good_post(x, minNumberOfChars))]
     return df
 
 def create_posts_df(folder):
@@ -86,6 +87,3 @@ def get_all_posts(fbUser,folderName,access_token,maxIter=1000):
         i+=1
         if i==maxIter:
             break
-    
-        
-
